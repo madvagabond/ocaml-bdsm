@@ -1,0 +1,14 @@
+(jbuild_version 1)
+
+(executable
+ ((name mux_test)
+  (libraries  (mux batteries oUnit ) ) 
+ )
+
+)
+
+
+(alias
+ ((name runtest)
+  (action (run ./mux_test.exe ))) )
+  

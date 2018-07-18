@@ -1,0 +1,8 @@
+(jbuild_version 1) 
+(library
+ ((name mux)
+  (public_name ocaml-mux)
+  (libraries  (fieldslib cstruct fmt mstruct mirage-flow-lwt str) )
+  (preprocess (pps (ppx_fields_conv) ) )
+  (synopsis "")))
+
