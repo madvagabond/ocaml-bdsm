@@ -1,7 +1,7 @@
 
 open Lwt.Infix
        
-module Reader = Codec_util.Reader
+module Reader = Codec.Reader
                   
 module S (Flow:  Mirage_flow_lwt.S) = struct
 
@@ -34,5 +34,9 @@ module S (Flow:  Mirage_flow_lwt.S) = struct
     R.read flow >>= fun rep ->
     to_lwt rep
 
+
+  let send_recv flow req =
+    send flow req >>= fun rep ->
+    recv flow 
     
 end

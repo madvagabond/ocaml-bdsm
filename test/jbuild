@@ -2,7 +2,7 @@
 
 (executable
  ((name mux_test)
-  (libraries  (mux batteries oUnit ) ) 
+  (libraries  (mux batteries oUnit mirage-flow-unix ) ) 
  )
 
 )
@@ -10,5 +10,5 @@
 
 (alias
  ((name runtest)
-  (action (run ./mux_test.exe ))) )
+  (action (run ${exe:mux_test.exe}  ))))
   

@@ -2,11 +2,15 @@ open OUnit2
 open Mux
 open Messages
        
-open Codec_util
-       
+open Codec
+
+open Lwt.Infix
        
 
 module Option = Batteries.Option
+
+module Flow = Mirage_flow_unix.Fd
+module RDR = Codec.Reader(Flow)(TMSG)
 
 
 let rmsg_equal l r =
@@ -14,6 +18,27 @@ let rmsg_equal l r =
   let pp x = Headers.to_string x.headers in
   
   (pp r = pp l) && (Cstruct.equal l.body r.body)
+
+
+
+let make_wrtr () =
+  let fd =
+    let open Lwt_unix in
+    let fd_flags = [O_CREAT; O_WRONLY; O_APPEND; O_TRUNC] in
+    Lwt_unix.openfile "/tmp/rdr_tst" fd_flags 0o777
+  in
+
+  fd 
+
+let make_rdr () =
+  let fd =
+    let open Lwt_unix in
+    let fd_flags = [O_RDONLY] in
+    Lwt_unix.openfile "/tmp/rdr_tst" fd_flags 0o777
+  in
+
+  fd 
+  
 
 
 let tmsg_equal l r =
@@ -41,7 +66,7 @@ let rmsg_codec ctx =
     RMSG.decode bytes |> Base.Result.ok  |> Option.get
   in
 
-  assert_bool "decoded message has same contents" (rmsg_equal got rmsg)
+  assert_bool "decoded message doesn't have same contents" (rmsg_equal got rmsg)
   
 
 
@@ -70,27 +95,80 @@ let tmsg_codec ctx =
   let tmsg = TMSG.make ~path ~headers ~body () in
 
   let bytes = TMSG.encode tmsg  in
-
+  let bytes_1 = Cstruct.append Cstruct.empty bytes in 
 
   let got =
-    TMSG.decode bytes |> Base.Result.ok |> Option.get
+    TMSG.decode bytes_1 |> Base.Result.ok |> Option.get
   in
 
-  assert_bool "decoded message has same contents" (tmsg_equal got tmsg)
+  assert_bool "decoded message doesn't have same contents" (tmsg_equal got tmsg)
+
+
+
+let get_buf r =
+  match r with
+  | Ok (`Data x) -> Lwt.return x
+  | Ok `Eof -> Lwt.fail_with "EOF before message could be read"
+  | Error e -> Lwt.fail_with "Error occured before it could be read"
+
+
+                             
+
   
-                                         
+  
+
+  
+
+let reader_test ctx =
+
+  let headers =
+    [
+      ("bitch", "ass");
+      ("punk", "motherfucker")
+    ] in
+
+  let path = ["hello"; "world"] in
+  let body = "test_body" |> Cstruct.of_string in
+ 
+  let req =
+    TMSG.make
+      ~path
+      ~headers
+      ~body ()
+  in 
+
+
+  (*fd >>= fun flow ->*)
+  let buf = TMSG.encode req in
+
+  make_wrtr () >>= fun wflow ->
+  Flow.write wflow buf >>= fun _ ->
+  Flow.close wflow >>= fun () -> 
+
+  make_rdr ()  >>= fun rflow -> 
+  RDR.read rflow >>= fun resp ->
+  
+  let got = resp |> Base.Result.ok |> Option.get in
+  assert_bool "values aren't equal" (tmsg_equal got req);
+  Flow.close rflow 
+   
+
+
+let run_async f ctx =
+  Lwt_main.run (f ctx)
+              
   
 let suite =
   "Codec Suite" >:::
     [
       "rmsg codec test" >:: rmsg_codec;
       "header codec test" >:: header_codec;
-      "tmsg codec" >:: tmsg_codec
+      "tmsg codec" >:: tmsg_codec;
+      "reader test" >:: (run_async reader_test)
+
     ]
 
 let () =
   run_test_tt_main suite
-
-
 
 

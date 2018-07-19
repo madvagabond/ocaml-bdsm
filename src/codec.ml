@@ -185,49 +185,57 @@ module Reader (Flow: Mirage_flow_lwt.S) (C: Codec) = struct
     let msg = "message exceeded buffer size of 100KB" in
     Cstruct.of_string msg
 
+
+
   let read flow =
-    
+
     let rec aux buf =
+ 
+      
       Flow.read flow >>= fun read_res ->
-       match read_res with
-
-       | Ok (`Data data) ->
-
-          let buf1 = Cstruct.append buf data in
-
-          begin 
-
-            if (Cstruct.len buf1) <= 100000 then
 
 
-              let res = C.decode buf1 in
+      match read_res with
 
-              if (Base.Result.is_ok res) then Lwt.return res
+      | Ok (`Data data) ->
+         let buf1 = Cstruct.append buf data in
 
-              else aux buf1 
-                       
-                       
+         begin 
 
-            else
+           if (Cstruct.len buf1) <= 100000 then
 
-              
-              Flow.write flow too_big >|= fun _ ->
-              Error ( "Message exceeded size" )
 
-          end
-            
+             let res = C.decode buf1 in
 
-       | Ok `Eof ->
-          Flow.close flow >|= fun () ->
-          Error "Client closed connection before message could be decoded"
+             if (Base.Result.is_ok res) then Lwt.return res
 
-       | Error e ->
-          let emsg = Fmt.strf "%a" (Flow.pp_error) e in
-          Error emsg |> Lwt.return 
-            
-                                                  
+             else aux buf1 
+
+
+           else
+             Flow.write flow too_big >|= fun _ ->
+             Error ( "Message exceeded size" )
+
+         end
+
+
+      | Ok `Eof ->
+         Flow.close flow >|= fun () ->
+         Error "Client closed connection before message could be decoded"
+
+      | Error e ->
+         let emsg = Fmt.strf "%a" (Flow.pp_error) e in
+         Error emsg |> Lwt.return 
+
+
     in
 
-    aux Cstruct.empty
-    
+    let buf = Cstruct.empty in
+    aux buf                      
+
+
+
+
+
+
 end

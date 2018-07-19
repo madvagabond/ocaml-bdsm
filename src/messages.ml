@@ -1,5 +1,5 @@
-module HC = Codec_util.HeadersCodec
-module PC = Codec_util.PathCodec
+module HC = Codec.HeadersCodec
+module PC = Codec.PathCodec
 
 
 
@@ -39,7 +39,7 @@ module TMSG = struct
 
     let hdr = HC.decode mbuf in
 
-    let body_r = Codec_util.read_field mbuf in
+    let body_r = Codec.read_field mbuf in
 
     match (path_r, hdr, body_r) with
     | (
@@ -61,7 +61,7 @@ module TMSG = struct
 
         HC.encode (t.headers);
 
-        Codec_util.write_field (t.body); 
+        Codec.write_field (t.body); 
       ]
     in
 
@@ -74,6 +74,11 @@ end
 
 
 
+
+
+
+
+                
 
 module RMSG = struct
     
@@ -102,13 +107,13 @@ module RMSG = struct
 
   let decode buf =
     
-    let mbuf = Mstruct.of_cstruct buf |> Codec_util.reset in
+    let mbuf = Mstruct.of_cstruct buf in
     
     
     let hdr = HC.decode mbuf in
 
 
-    let body_r = Codec_util.read_field mbuf in
+    let body_r = Codec.read_field mbuf in
 
     match (hdr, body_r) with
     | ( Ok(headers),  Ok(body)  ) ->
@@ -125,7 +130,7 @@ module RMSG = struct
     let bufs =
       [
         HC.encode (t.headers );
-        Codec_util.write_field (t.body); 
+        Codec.write_field (t.body); 
       ]
     in
 
