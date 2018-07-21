@@ -1,7 +1,7 @@
 open Lwt.Infix
+open Messages
        
-module TMSG = Messages.TMSG
-module RMSG = Messages.RMSG
+
                 
 module type Listener = sig
   include Mirage_flow_lwt.S
@@ -15,12 +15,12 @@ end
 
 
 
-module S (L: Listener) = struct
+module Make (L: Listener) = struct
   type handler = L.flow -> TMSG.t  -> unit Lwt.t
 
 
 
-  module R = Codec.Reader(L)(Messages.TMSG)
+  module R = Codec.Reader(L)(TMSG)
 
   let to_lwt res =
     match res with

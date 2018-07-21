@@ -1,5 +1,14 @@
 open Base.Result
-open Lwt.Infix 
+open Lwt.Infix
+
+
+                      
+let reset buf =
+  let pos = Mstruct.offset buf |> fun x -> (0 - x) in
+  Mstruct.shift buf pos;
+  buf
+              
+  
 
 let parse_result f =
   try Ok ( f () )
@@ -23,12 +32,7 @@ let read_field buf =
 
                                
 
-               
-let reset buf =
-  let pos = Mstruct.offset buf |> fun x -> (0 - x) in
-  Mstruct.shift buf pos;
-  buf
-              
+
 
     
     

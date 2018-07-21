@@ -69,6 +69,25 @@ module TMSG = struct
     Cstruct.concat bufs 
 
 
+  let with_headers t f =
+    let h1 = f ( headers t ) in
+    {t with headers = h1;}
+
+  let set_headers t h =
+    {t with headers = h;}
+
+
+      
+  let set_body t b =
+    {t with body = b}
+
+
+      
+  let with_body t f =
+    let body1 = f t.body in
+    {t with body = body1}
+      
+                    
       
 end
 
@@ -137,9 +156,28 @@ module RMSG = struct
 
     Cstruct.concat bufs 
                    
-                   
-                   
 
-        
 
+
+
+  let set_headers t h =
+    {t with headers = h;}
+
+
+  let with_headers t f =
+    let h1 = f ( headers t ) in
+    {t with headers = h1;}
+
+
+  let set_body t b =
+    {t with body = b}
+
+  let with_body t f =
+    let body1 = f t.body in
+    {t with body = body1}
+      
+      
+
+      
+      
 end 

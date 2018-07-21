@@ -17,7 +17,7 @@ end
 (** 
    The reason why Listeners are used instead of stacks is because the original scala implementation was transport Generic, and ran on UDT by default
 *)
-module S:
+module Make:
 functor (L: Listener) -> sig
   type handler = L.flow -> TMSG.t -> unit Lwt.t
 

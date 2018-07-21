@@ -1,8 +1,10 @@
-(jbuild_version 1) 
+(jbuild_version 1)
+
 (library
  ((name mux)
-  (public_name ocaml-mux)
+  (public_name mux-proto)
   (libraries  (fieldslib cstruct fmt mstruct mirage-flow-lwt str) )
   (preprocess (pps (ppx_fields_conv) ) )
-  (synopsis "")))
+  (synopsis "A simple session layer multiplexing protocol, that is transport generic, inspired by multistream and twitter's mux protocol")))
+
 

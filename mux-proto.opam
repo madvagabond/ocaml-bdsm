@@ -1,0 +1,29 @@
+opam-version: "1.2"
+maintainer: "flatmapds@gmail.com"
+
+authors: [Samuel Riyad]
+tags: ["mirage" "protocol" "binary protocol" "session-layer" "multiplexing" "twitter" "multistream"]
+license: "MIT"
+
+version: "1.0"
+homepage: ""
+
+dev-repo: ""
+bug-reports: ""
+
+build: [
+  [ "jbuilder" "subst" ] {pinned}
+  [ "jbuilder" "build" "-p" name "-j" jobs ]
+]
+
+  
+depends: [
+  "mstruct"
+  "fieldslib"
+  "mirage-flow-lwt"
+  "fmt"
+  "jbuilder" {build}
+]
+
+
+  
