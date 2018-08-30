@@ -23,16 +23,12 @@ let write_kv buf kv =
 
 (* Modify to shift back on failure*)
 let read_kv buf =
-
-  try 
-    let k = Buf.read_int16 buf |> Buf.read_string buf in
-    let v = Buf.read_int16 buf |> Buf.read_string buf in
-    Ok (k, v)
-  with Invalid_argument e ->
-    Error e
-        
-        
-         
+  let k = Buf.read_int16 buf |> Buf.read_string buf in
+  let v = Buf.read_int16 buf |> Buf.read_string buf in
+  k, v
+       
+       
+       
                            
 let encode t buf =
   let card = List.length t in
@@ -46,52 +42,27 @@ let encode t buf =
 
 
                                     
-let from_buf ~ct buf =
+let decode ~ct buf =
   
   let rec aux c hdrs =
     if c > 0 then
       let c1 = c - 1 in 
       let kv = read_kv buf in
-     
 
-      match kv with
-      | Ok kv -> aux c1 (hdrs @ [kv])
-      | Error e -> `Out_of_bounds (c, hdrs)
-                    
+      aux c1 (hdrs @ [kv])
+          
           
 
     else
-      `Done hdrs 
+      hdrs 
 
   in
   aux ct []
-    
-
-
-let map_result r f =
-  match r with
-  | Ok res -> Ok (f res )
-  | Error e -> Error e
-
-
-let fmap_result r f =
-  match r with
-  | Ok res -> f res
-  | Error e -> Error "failiure"
-
-                     
-let get_result r =
-  match r with
-  | Ok x -> x
-  | Error _ -> Invalid_argument "result returns error"
-  
-
-let result_ok r =
-  match r with
-  | Ok _ -> true
-  | Error _ -> false 
       
 
+
+                 
+(*
 module IO (F: Mirage_flow_lwt.S) = struct
 
 
@@ -154,7 +125,9 @@ end
     
 
   
+ *)
 
+                 
 
       (*
       let c1 = c - 1 in
