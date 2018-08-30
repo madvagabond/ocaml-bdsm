@@ -11,7 +11,7 @@ module LFP (F: Mirage_flow_lwt.S) = struct
   open Buf
          
   let write flow buf =
-    let size = Buf.len buf |> Int64.of_int in
+    let size = Buf.len buf |> Int32.of_int in
     let len_pfx = Cstruct.create 8 in
     Cstruct.BE.set_uint64 len_pfx 0 size;
 
