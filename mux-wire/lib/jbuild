@@ -1,0 +1,5 @@
+(library
+ ((name mux_wire)
+  (public_name mux-wire)
+  (libraries  (lwt mux cstruct))
+  (synopsis "The raw implementation of mux")))
