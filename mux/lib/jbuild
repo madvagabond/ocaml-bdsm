@@ -3,7 +3,7 @@
 (library
  ((name mux)
   (public_name mux-proto)
-  (libraries  (fieldslib cstruct fmt mstruct mirage-flow-lwt str) )
+  (libraries  (cstruct fmt mirage-flow-lwt str) )
   (preprocess (pps (ppx_fields_conv) ) )
   (synopsis "A simple session layer multiplexing protocol, that is transport generic, inspired by multistream and twitter's mux protocol")))
 

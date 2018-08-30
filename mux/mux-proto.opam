@@ -19,7 +19,6 @@ build: [
   
 depends: [
   "mstruct"
-  "fieldslib"
   "mirage-flow-lwt"
   "fmt"
   "jbuilder" {build}

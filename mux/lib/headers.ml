@@ -1,11 +1,16 @@
+
 type t = (string * string) list
 
 
-
+let map_option o f =
+  match o with
+  | Some x -> Some ( f x )
+  | None -> None
+  
                            
 let get t key =
-  let o = Base.List.find t (fun (k, _) ->  k = key ) in
-  Base.Option.map o (fun (k, _) -> k) 
+  let o = List.find_opt (fun (k, _) ->  k = key ) t in
+  map_option o (fun (k, _) -> k) 
 
                   
 
