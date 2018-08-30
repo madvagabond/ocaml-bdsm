@@ -1,5 +1,6 @@
+B ../../_build/default/mux-wire/lib
 B ../../_build/default/mux/lib
-FLG -open Mux -w -40
+FLG -open Mux_wire -w -40
 PKG bigarray
 PKG bytes
 PKG cstruct
@@ -17,3 +18,4 @@ PKG str
 PKG uchar
 PKG unix
 S .
+S ../../mux/lib

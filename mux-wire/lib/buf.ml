@@ -67,3 +67,15 @@ let read_string t len =
 
 let read_int16 t =
   read t 4 Cstruct.BE.get_uint16
+
+
+let of_cstruct buf =
+  {buf}
+
+let append t buf =
+  let buf_1 = Cstruct.create (Cstruct.len t.buf) in
+  t.buf <- Cstruct.append t.buf buf_1 
+
+
+let create size =
+  Cstruct.create size |> of_cstruct

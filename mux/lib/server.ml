@@ -2,14 +2,17 @@ open S
 open Lwt.Infix
        
        
-module Make
-         (L: Listener)
-         (TMSG: TMSG with type Chan.flow = L.flow)
-         (RMSG: RMSG with type Chan.flow = L.flow) = struct
+module Make(L: Listener)(TMSG: TMSG)(RMSG: RMSG) = struct
+
+
 
 
   module Flow = L
                   
+            
+  include Transport.Make(L)(TMSG)(RMSG)
+                        
+          (*        
   let read_rmsg flow =
     RMSG.Chan.read flow
 
@@ -22,7 +25,7 @@ module Make
   let write_rmsg flow rmsg =
     RMSG.Chan.write flow rmsg
 
-
+*)
 
 
   

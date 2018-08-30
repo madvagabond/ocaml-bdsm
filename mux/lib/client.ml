@@ -5,17 +5,18 @@ open Lwt.Infix
 
 
 
+module Make (N: Net) (TMSG: TMSG) (RMSG: RMSG): Client = struct
 
-module Make (N: Net) (TMSG: TMSG with type Chan.flow = N.flow) (RMSG: RMSG with type Chan.flow = N.flow): Client = struct
-
-  
-
+ 
   include N
-            
-  module TMSG = TMSG
-  module RMSG = RMSG
-                  
+  include Transport.Make(N)(TMSG)(RMSG)
+                        
 
+            
+                  
+                
+                  
+(*
             
   let read_rmsg flow =
     RMSG.Chan.read flow
@@ -31,7 +32,7 @@ module Make (N: Net) (TMSG: TMSG with type Chan.flow = N.flow) (RMSG: RMSG with 
 
 
 
-
+*)
 
   let use flow tmsg =
     write_tmsg flow tmsg >>= fun _ ->
