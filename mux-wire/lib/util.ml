@@ -13,10 +13,10 @@ module LFP (F: Mirage_flow_lwt.S) = struct
   let write flow buf =
     let size = Buf.len buf |> Int32.of_int in
     let len_pfx = Cstruct.create 8 in
-    Cstruct.BE.set_uint64 len_pfx 0 size;
+    Cstruct.BE.set_uint32 len_pfx 0 size;
 
     handle_write flow (fun f -> F.write f len_pfx) F.close >>= fun () ->
-    handle_write flow (fun f -> F.write f buf.buf) F.close 
+    handle_write flow (fun f -> F.write f buf.buffer) F.close 
 
   let rec read flow size buf =
     if (Buf.len buf) >= size then 

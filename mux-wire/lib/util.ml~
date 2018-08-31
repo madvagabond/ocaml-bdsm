@@ -1,4 +1,0 @@
-module LFP (F: Flow) = struct
-  let write buf =
-    Cstruct.length buf.buf
-end 

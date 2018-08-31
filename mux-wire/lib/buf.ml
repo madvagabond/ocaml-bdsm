@@ -1,42 +1,42 @@
-type t = {mutable buf: Cstruct.t }
+type t = {mutable buffer: Cstruct.t }
 
   
 
 let shift t off =
   let buf = Cstruct.of_bigarray
-    ~off:(t.buf.Cstruct.off + off)
-    ~len:(t.buf.Cstruct.len - off)
-    t.buf.Cstruct.buffer  in
-  t.buf <- buf
+    ~off:(t.buffer.Cstruct.off + off)
+    ~len:(t.buffer.Cstruct.len - off)
+    t.buffer.Cstruct.buffer  in
+  t.buffer <- buf
 
 
 let reset t  =
-  let rem = 0 - t.buf.Cstruct.off in
+  let rem = 0 - t.buffer.Cstruct.off in
   shift t rem
   
 
 let write t size f c =
 
 
-  let rem = (Cstruct.len t.buf) - size in
+  let rem = (Cstruct.len t.buffer) - size in
 
   begin 
     if rem < 0 then
-      let buf_1 = Cstruct.create (Cstruct.len t.buf) in
-      t.buf <- Cstruct.append t.buf buf_1 
+      let buf_1 = Cstruct.create (Cstruct.len t.buffer) in
+      t.buffer <- Cstruct.append t.buffer buf_1 
     else
       ()
         
   end;
     
-  f t.buf 0 c;
+  f t.buffer 0 c;
   shift t size
                 
       
 
 
 let write_int16 buf i =
-  write buf 4 Cstruct.BE.set_uint16 i
+  write buf 2 Cstruct.BE.set_uint16 i
 
                                  
 
@@ -44,13 +44,13 @@ let write_string t str =
   let len = String.length str in
   
   write t len (fun _ _ _ ->
-      Cstruct.blit_from_string str 0 t.buf 0 len;
+      Cstruct.blit_from_string str 0 t.buffer 0 len;
 ) str
 
       
                                  
 let read t len f =
-  let out = f t.buf 0 in
+  let out = f t.buffer 0 in
   shift t len; 
   out 
 
@@ -60,21 +60,20 @@ let read_string t len =
   else
     let str = Bytes.create len in
     read t len (fun _ _ ->
-        Cstruct.blit_to_string t.buf 0 str 0 len;
+        Cstruct.blit_to_string t.buffer 0 str 0 len;
       );
     Bytes.to_string str
 
 
 let read_int16 t =
-  read t 4 Cstruct.BE.get_uint16
+  read t 2 Cstruct.BE.get_uint16
 
 
-let of_cstruct buf =
-  {buf}
+let of_cstruct buffer =
+  {buffer}
 
 let append t buf =
-  let buf_1 = Cstruct.create (Cstruct.len t.buf) in
-  t.buf <- Cstruct.append t.buf buf_1 
+  t.buffer <- Cstruct.append t.buffer buf
 
 
 let create size =
@@ -82,9 +81,31 @@ let create size =
 
 
 let len t =
-  Cstruct.len t.buf
+  Cstruct.len t.buffer
 
 let off t=
-  t.buf.Cstruct.off
+  t.buffer.Cstruct.off
 
 
+let write_int32 t i =
+  write t 4 Cstruct.BE.set_uint32 i 
+
+let read_int32 t =
+  read t 4 Cstruct.BE.get_uint32 
+
+
+let read_cstruct t len  =
+  let ret = Cstruct.sub t.buffer 0 len in
+  t.buffer <- Cstruct.shift t.buffer len;
+  ret 
+
+
+let prepend t cs =
+  t.buffer <- Cstruct.append cs t.buffer 
+
+                             
+let to_cstruct t =
+  let neg = 0 - (len t) in
+  shift t neg;
+  t.buffer
+    
