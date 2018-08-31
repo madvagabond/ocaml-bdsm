@@ -17,17 +17,27 @@ let reset t  =
 
 let write t size f c =
 
+  let cap = Cstruct.len t.buffer + (t.buffer.Cstruct.off) in
+  let us = (Cstruct.len t.buffer) < size in
+  
+  
+  
 
-  let rem = (Cstruct.len t.buffer) - size in
+  let _ = 
+    if us && (cap * 2) >= size then
+      let cs = Cstruct.create size in
+      t.buffer <- Cstruct.append t.buffer cs
+      
 
-  begin 
-    if rem < 0 then
-      let buf_1 = Cstruct.create (Cstruct.len t.buffer) in
-      t.buffer <- Cstruct.append t.buffer buf_1 
-    else
-      ()
-        
-  end;
+    else if us then
+      let buf_1 = Cstruct.create cap in
+      t.buffer <- Cstruct.append t.buffer buf_1
+
+    else ()
+  in
+  
+
+  
     
   f t.buffer 0 c;
   shift t size
@@ -80,9 +90,6 @@ let create size =
   Cstruct.create size |> of_cstruct
 
 
-let len t =
-  Cstruct.len t.buffer
-
 let off t=
   t.buffer.Cstruct.off
 
@@ -105,7 +112,16 @@ let prepend t cs =
 
                              
 let to_cstruct t =
-  let neg = 0 - (len t) in
-  shift t neg;
+  reset t; 
   t.buffer
+
     
+let size t =
+  off t
+      
+let remaining t =
+  Cstruct.len t.buffer
+
+let capacity t =
+  (Cstruct.len t.buffer) + t.buffer.Cstruct.off
+

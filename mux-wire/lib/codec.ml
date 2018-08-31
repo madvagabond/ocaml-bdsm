@@ -1,4 +1,6 @@
 open Buf
+open Lwt.Infix
+       
        
 
 module Headers = struct
@@ -76,3 +78,75 @@ module Path = struct
 
 
 end 
+
+                
+
+module Frame (Flow: Mirage_flow_lwt.S) = struct
+  
+  type t = {
+      path: string list;
+      headers: (string * string) list;
+      body: Cstruct.t 
+    } 
+
+
+             
+            
+             
+
+
+  (*Just wait you get the entire message *)
+                     
+  let read flow decode =
+    Flow.read flow >>= fun r ->
+    match r with
+
+    | Ok (`Data cs) -> 
+    
+       let buf = Buf.of_cstruct cs in
+
+       Util.read_frame
+         (fun () -> Flow.read flow)
+         (fun () -> Flow.close flow)
+         buf >|= fun res ->
+       
+       Util.map_result res (fun () -> decode buf)
+
+
+    | Ok `Eof ->
+       Flow.close flow >|= fun _ ->
+       Error "peer closed connection before frame could be recieved"
+                        
+    | Error e ->
+       Flow.close flow >|= fun _ -> 
+       Error "an error has occured"
+
+
+
+  let handle_write flow buf =
+    Flow.write flow buf >>= fun r -> 
+    match r with
+    | Ok x -> Lwt.return x
+                
+    | Error _ ->
+       Flow.close flow >>= fun _ ->
+       Lwt.fail_with "Tried to write to closed connection"
+                   
+   
+  let write flow buf  =
+    let len = Buf.size buf |> Int32.of_int in
+    let cs = Cstruct.create 4 in
+
+    Cstruct.BE.set_uint32 cs 0 len;
+    handle_write flow cs >>= fun _ ->
+    handle_write flow (Buf.to_cstruct buf)
+    
+   
+    
+    
+    
+   
+
+    
+
+end

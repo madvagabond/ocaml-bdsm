@@ -1,14 +1,24 @@
 
 
 
-
-type t = {
+(*
+type req = {
     path: string list;
-    headers: (string * string) list;
+    headers: Mux.Headers.t;
     body: Cstruct.t 
   } 
            
+*)
 
+type tmsg = {
+    path: string list;
+    headers: Mux.Headers.t;
+    body: Cstruct.t 
+  }
+              
+type t = tmsg
+           
+           
 
 let path_default = []
                      
@@ -87,82 +97,26 @@ open Lwt.Infix
 module IO (F: Mirage_flow_lwt.S) = struct
   type flow = F.flow
 
-
-  type t = {
-      path: string list;
-      headers: (string * string) list;
-      body: Cstruct.t 
-    } 
-
-  let handle_read flow =
-    F.read flow >>= fun r ->
-    match r with
-    | Ok (`Data x) -> Lwt.return x
-
-    | Ok `Eof ->
-       F.close flow >>= fun () ->
-       Lwt.fail_with "connection closed by peer"
-
-    | Error e ->
-       let emsg = Fmt.strf "%a" F.pp_error e in
-       F.close flow >>= fun () ->
-       Lwt.fail_with emsg 
-                  
+  module Frame = Codec.Frame(F)
 
 
 
-  let rec read_frame flow buf =
-    let hlen = Buf.read_int32 buf|> Int32.to_int in
+  type t = tmsg
 
-    let rec aux () =
-      let bs = Buf.len buf in
-      
-      if hlen <= bs then Lwt.return ()
-                                    
-      else
-        handle_read flow >|= fun cs ->
-        Buf.append buf cs
+             
 
-    in
-    aux ()
-
-        
-        
-    
-
-
-
-  (*Just wait you get the entire message *)
-                     
   let read flow =
-    handle_read flow >>= fun cs ->
-    let buf = Buf.of_cstruct cs in
-    read_frame flow buf >|= fun () ->
-    decode buf 
-    
-    
+    Frame.read flow decode
 
-  
-      
-  let write t flow =
+  let write flow t  =
     let buf = Buf.create 1024 in
     encode t buf;
 
-    let len = Buf.len buf |> Int32.of_int in 
-    let cs = Cstruct.create 4 in
-
-    Cstruct.BE.set_uint32 cs 0 len; 
-    
-    F.write flow cs >>= fun _ ->
-    F.write flow (Buf.to_cstruct buf)
-    
-    
-   
-
+    Frame.write flow buf
     
 
-    
-                
-    
+
+            
+           
              
 end

@@ -1,7 +1,44 @@
 open Lwt.Infix
        
-let handle_write flow w close =
-  w flow >>= fun r ->
+
+let read_frame read close buf =
+  let len = Buf.read_int32 buf |> Int32.to_int in
+
+  let rec aux () =
+    let size = Buf.remaining buf in
+    
+    if len <= size then Lwt.return ( Ok () )
+    else
+      read () >>= fun res ->
+      match res with
+
+      | Ok (`Data cs) ->
+         Buf.append buf cs;
+         aux ()
+
+      | Ok `Eof ->
+         close () >|= fun _ ->
+         Error "peer closed connection before frame could be recieved"
+
+      | Error _ ->
+         close () >|= fun _ -> 
+         Error "an error has occured"
+
+  in aux ()
+
+
+
+let map_result r f =
+  match r with
+  | Ok res -> Ok (f res )
+  | Error e -> Error e
+
+                 
+
+
+(*
+let handle_write w close =
+  w () >>= fun r ->
   match r with
   | Ok _ -> Lwt.return_unit
   | Error _ -> close flow >>= fun () -> Lwt.fail_with "connection error occured" 
@@ -34,14 +71,6 @@ module LFP (F: Mirage_flow_lwt.S) = struct
       Lwt.return (Ok () )
 end 
 
-
-(*
-
-
-let map_result r f =
-  match r with
-  | Ok res -> Ok (f res )
-  | Error e -> Error e
 
 
 let fmap_result r f =
