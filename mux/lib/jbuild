@@ -1,9 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name mux)
-  (public_name mux)
-  (libraries  (cstruct fmt mirage-flow-lwt str) )
-  (synopsis "A simple session layer multiplexing protocol, that is transport generic, inspired by multistream and twitter's mux protocol")))
-
-

@@ -1,0 +1,14 @@
+B ../_build/default/mux
+FLG -open Mux -w -40
+FLG -ppx '/home/sam/Programming/infrastructure/ocaml-mux/_build/default/.ppx/ppx_cstruct/ppx.exe --as-ppx --cookie '\''library-name="mux"'\'''
+PKG bigarray
+PKG compiler-libs
+PKG compiler-libs.common
+PKG cstruct
+PKG ocaml-migrate-parsetree
+PKG ppx_tools_versioned
+PKG result
+PKG sexplib
+PKG sexplib.0
+PKG unix
+S .
