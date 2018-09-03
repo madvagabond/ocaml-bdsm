@@ -1,7 +1,7 @@
 open Util
 
 
-type msg = {
+type frame = {
     mtype: int;
     tag: int32;
     body: Cstruct.t 
@@ -70,26 +70,52 @@ let of_cstruct buf =
   
 
 
-[%%cenum
 
      
 
- type msg_type =
-   | TPING
-   | RPING
+type msg_type = [
+  | `TPING
+  | `RPING
 
-   | TINIT
-   | RINIT
+  | `TINIT
+  | `RINIT
 
-   | TREQ
-   | RREQ
+  | `TREQ
+  | `RREQ
 
-   | TCLOSE
-   | RCLOSE
+  | `TCLOSE
+  | `RCLOSE
+
+  ]
 
 
- [@@uint8_t]
+let mtype_to_int =
+  function
 
+  | `TPING -> 0
+  | `RPING -> 1
 
-]
-      
+  | `TINIT -> 2
+  | `RINIT -> 3
+
+  | `TREQ -> 4
+  | `RREQ -> 5
+
+  | `TCLOSE -> 6
+  | `RCLOSE -> 7
+
+                 
+let mtype_of_int =
+  function
+  | 0 -> `TPING
+  | 1 -> `RPING
+
+  | 2 -> `TINIT
+  | 3 -> `RINIT
+
+  | 4 -> `TREQ
+  | 5 -> `RREQ
+
+  | 6 -> `TCLOSE
+  | 7 -> `RCLOSE
+  | _ -> `Unknown

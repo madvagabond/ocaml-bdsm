@@ -35,6 +35,7 @@ let add t k v =
 let add_multi t key vals =
   let entries = List.map (fun x -> (key, x) ) vals in 
   t @ entries
+        
 
 
         
