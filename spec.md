@@ -46,7 +46,7 @@ size:4 type:1 version:2 tag:4 body~4
 
 
 Here example of how it's used.
-TINIT = size:4 0x03:1 tag:4  (count:2 (key~2 value~2)[count] )~4
+TINIT = size:4 0x03:1 tag:4  count:2 {key~2 value~2}[count]
 
 
 
@@ -106,17 +106,25 @@ Response for TINIT.
 
 
 ### TREQ
-size:4 0x04:1 version:2 tag:4 count:2 (key~2 value~2)[count] path~2 body~4
+size:4 0x04:1 version:2 tag:4 count:2 {key~2 value~2}[count] path~2 body~4
 
 Carries headers,followed by a logical destination represented as a utf8 encoded string, and the request body.
 
 The destination can be used to route requests.
-IE dev/dns/myapp/mydomain/com or hosta/ipc/workers/$, ip/10.1.120.6, dc/nyc/cluster/1
 
+For Example
+```
+dev/dns/myapp/mydomain/com
+ipc/procs/workers/$
 
+ip/10.1.120.6
+dc/nyc/db_cluster
+
+rpc/calc/add
+```
 
 ### RREQ
-size:4 0x05 version:2 tag:4 (key~2 value~2)[count] status:1 body~4
+size:4 0x05 version:2 tag:4 {key~2 value~2}[count] status:1 body~4
 
 Replies to a TREQ
 
@@ -125,10 +133,11 @@ Carries headers, a status code represented as a 1 bit integer, and a string cont
 
 
 Status codes are as follows
+```
 0 = OK request succesful.
 1 = ERROR generic
 2 = NACK didn't even attempt request.
-
+```
 
 
 
@@ -155,9 +164,12 @@ Request response initiated by client
 
   TINIT -> Server
   RINIT -> Client
+  
   TREQ -> Server
-  RREQ -> Client 
-
+  RREQ -> Client
+  
+  TCLOSE -> Server
+  RCLOSE -> Client
 
 ```
 
@@ -171,7 +183,10 @@ Request response initiated by server
   RINIT -> Server
 
   TREQ -> Client
-  RREQ -> Server 
+  RREQ -> Server
+
+  TCLOSE -> Client
+  RCLOSE -> Server
 
 
 ```
