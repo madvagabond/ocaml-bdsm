@@ -46,7 +46,7 @@ size:4 type:1 version:2 tag:4 body~4
 
 
 Here example of how it's used.
-TINIT = size:4 0x03:1 tag:4  count:2 {key~2 value~2}[count]
+TINIT = size:4 0x03:1 tag:4  count:2 "{key~2 value~2}"[count]
 
 
 
