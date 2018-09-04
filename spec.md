@@ -32,7 +32,7 @@ Let field[c] be a field who's contents are a repeat sequence of size c.
 
 Let field:s be a field that takes s bytes.
 
-Let field~s be a field who's contents are of size s represented as an unsigned integer of size bytes. ie size:4 body:size 
+Let field-s be a field who's contents are of size s represented as an unsigned integer of size bytes. ie size:4 body:size 
 
 Note all integers are unsigned. 
 
@@ -42,18 +42,18 @@ Note all integers are unsigned.
 ## Frame
 
 All messages are embedded into this format.
-size:4 type:1 version:2 tag:4 body~4
+size:4 type:1 version:2 tag:4 body-4
 
 
 Here example of how it's used.
-TINIT = size:4 0x03:1 tag:4  count:2 "{key~2 value~2}"[count]
+TINIT = size:4 0x03:1 tag:4  count:2 {key-2 value-2} [count]
 
 
 
 
 ## Headers
 
-count:2 (key~2, value~2)[count]
+count:2 (key-2, value-2)[count]
 
 Headers are a utf8 key value pairs
 
@@ -101,12 +101,12 @@ You can't send any messages before you recieve the corresponding RINIT.
 
 ### RINIT
 
-size:4 0x03:1 version:2 tag:4 (key~2 value~2)[count]
+size:4 0x03:1 version:2 tag:4 (key-2 value-2)[count]
 Response for TINIT.
 
 
 ### TREQ
-size:4 0x04:1 version:2 tag:4 count:2 {key~2 value~2}[count] path~2 body~4
+size:4 0x04:1 version:2 tag:4 count:2 {key-2 value-2}[count] path-2 body-4
 
 Carries headers,followed by a logical destination represented as a utf8 encoded string, and the request body.
 
@@ -124,7 +124,7 @@ rpc/calc/add
 ```
 
 ### RREQ
-size:4 0x05 version:2 tag:4 {key~2 value~2}[count] status:1 body~4
+size:4 0x05 version:2 tag:4 {key-2 value-2}[count] status:1 body-4
 
 Replies to a TREQ
 
