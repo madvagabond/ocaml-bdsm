@@ -1,0 +1,8 @@
+B ../_build/default/lib
+FLG -open Mux -w -40
+PKG bigarray
+PKG cstruct
+PKG sexplib
+PKG sexplib.0
+PKG unix
+S .
