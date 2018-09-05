@@ -1,7 +1,0 @@
-(jbuild_version 1)
-(library
- ((name mux)
-  (public_name mux)
-  (libraries  (cstruct) )
-  (preprocess (pps (ppx_cstruct) ) )
-  (synopsis "")))
