@@ -62,7 +62,6 @@ module TREQ = struct
 
 
 
-
   let to_body t =
     let size = buffer_size t in
     let len = Int32.of_int size in
@@ -219,24 +218,24 @@ type t = [
 
   ]
 
-let tag t =
+let tag =
   function 
   | `TPING i -> i
   | `RPING i -> i
 
   | `TINIT x -> INIT.tag x
   | `RINIT x -> INIT.tag x
-  | `TREQ x -> TREQ.tag x
-                        
+
+  | `TREQ x -> TREQ.tag x                      
   | `RREQ x -> RREQ.tag x
 
-  | `TCLOSE i -> i
-  | `RCLOSE i -> i
-                   
+  | `TCLOSE x -> x
+  | `RCLOSE x -> x
+    
 
 
      
-let to_frame t =
+let to_frame =
   function
 
   | `TPING tag ->
@@ -307,6 +306,7 @@ let of_frame f =
   | `RREQ -> `RREQ (RREQ.of_frame f)
 
   | `TCLOSE -> `TCLOSE tag
-  | `RCLOSE -> `RCLOSE tag 
+  | `RCLOSE -> `RCLOSE tag
+
                
                
