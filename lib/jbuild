@@ -2,6 +2,6 @@
 (library
  ((name mux)
   (public_name mux)
-  (libraries  (cstruct mirage-channel-lwt) )
+  (libraries  (cstruct mirage-channel-lwt lwt-queue) )
 
   (synopsis "")))

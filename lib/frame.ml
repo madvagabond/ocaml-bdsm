@@ -13,6 +13,11 @@ type msg_type = [
 
   | `TCLOSE
   | `RCLOSE
+    
+  | `TSHUTDOWN
+  | `RSHUTDOWN
+
+  | `RERROR
 
   ]
 
@@ -46,6 +51,11 @@ let mtype_to_int =
   | `TCLOSE -> 6
   | `RCLOSE -> 7
 
+  | `TSHUTDOWN -> 8
+  | `RSHUTDOWN -> 9 
+
+
+  | `RERROR -> 10
                  
 let mtype_of_int =
   function
@@ -60,6 +70,12 @@ let mtype_of_int =
 
   | 6 -> `TCLOSE
   | 7 -> `RCLOSE
+    
+  | 8 -> `TSHUTDOWN
+  | 9 -> `RSHUTDOWN
+
+  | 10 -> `RERROR
+    
   | i ->
      Invalid_argument (Printf.sprintf "message type %d unknown" i) |> raise
 

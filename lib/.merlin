@@ -4,6 +4,7 @@ B /home/sam/.opam/4.05.0/lib/fmt
 B /home/sam/.opam/4.05.0/lib/io-page
 B /home/sam/.opam/4.05.0/lib/logs
 B /home/sam/.opam/4.05.0/lib/lwt
+B /home/sam/.opam/4.05.0/lib/lwt-queue
 B /home/sam/.opam/4.05.0/lib/mirage-channel
 B /home/sam/.opam/4.05.0/lib/mirage-channel-lwt
 B /home/sam/.opam/4.05.0/lib/mirage-clock
@@ -23,6 +24,7 @@ S /home/sam/.opam/4.05.0/lib/fmt
 S /home/sam/.opam/4.05.0/lib/io-page
 S /home/sam/.opam/4.05.0/lib/logs
 S /home/sam/.opam/4.05.0/lib/lwt
+S /home/sam/.opam/4.05.0/lib/lwt-queue
 S /home/sam/.opam/4.05.0/lib/mirage-channel
 S /home/sam/.opam/4.05.0/lib/mirage-channel-lwt
 S /home/sam/.opam/4.05.0/lib/mirage-clock

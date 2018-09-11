@@ -164,7 +164,8 @@ module RREQ = struct
     in
     {tag; status; headers; body}
 
-         
+
+ 
          
 end 
 
@@ -195,9 +196,26 @@ module INIT = struct
     {t with headers = h;}
 
 
+  
                        
 end
 
+module RERROR = struct
+  type t = {tag: int32; body: Cstruct.t}
+
+  let tag t = t.tag
+  let body t = t.body
+
+  let to_frame t =
+    let mtype = `RERROR in 
+    {mtype; tag= t.tag; body = t.body}
+
+  let of_frame f =
+    let tag = Frame.tag f in
+    let body = Frame.body f in
+
+    {tag; body}
+end
                 
 
 type t = [
@@ -214,6 +232,11 @@ type t = [
 
   | `TCLOSE of int32
   | `RCLOSE of int32
+
+  | `TSHUTDOWN
+  | `RSHUTDOWN
+
+  | `RERROR of RERROR.t
                  
 
   ]
@@ -231,6 +254,11 @@ let tag =
 
   | `TCLOSE x -> x
   | `RCLOSE x -> x
+    
+  | `TSHUTDOWN -> 0l
+  | `RSHUTDOWN -> 0l
+
+  | `RERROR t -> RERROR.tag t
     
 
 
@@ -286,7 +314,22 @@ let to_frame =
      let body = Cstruct.empty in
 
      {mtype; tag; body}
-       
+
+
+  | `TSHUTDOWN ->
+    let mtype = `TSHUTDOWN in
+    {mtype; tag=0l; body=Cstruct.empty}
+
+  | `RSHUTDOWN ->
+    let mtype = `RSHUTDOWN in 
+    {mtype; tag=0l; body=Cstruct.empty}
+
+  | `RERROR t ->
+    RERROR.to_frame t 
+    
+  
+ 
+
        
 
 
@@ -307,6 +350,15 @@ let of_frame f =
 
   | `TCLOSE -> `TCLOSE tag
   | `RCLOSE -> `RCLOSE tag
+                 
+  | `RERROR ->
+    `RERROR (RERROR.of_frame f)
+      
+  | `TSHUTDOWN -> `TSHUTDOWN
+
+  | `RSHUTDOWN -> `RSHUTDOWN
+    
+    
 
                
                

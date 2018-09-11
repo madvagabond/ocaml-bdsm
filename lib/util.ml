@@ -42,89 +42,20 @@ let fmap_result res f =
   | Ok x -> f x
   | Error x -> Error x 
 
+            
 
-module Inbox = struct
-  type 'a t = {
-      lock: Lwt_mutex.t; 
-      tbl: (int32, 'a) Hashtbl.t
-    }
+let get_result res =
+  match res with
+  | Ok x -> x
+  | Error e -> raise (Invalid_argument e)
 
-  let rec remove_all tbl key =
+
+module Tbl = struct
+  include Hashtbl
+
+    let rec remove_all tbl key =
     if Hashtbl.mem tbl key then begin
         Hashtbl.remove tbl key;
         remove_all tbl key
       end
-                                  
-
-
-  let shutdown t tag =
-    Lwt_mutex.with_lock t.lock (fun () ->
-        Hashtbl.remove t.tbl tag;
-        Lwt.return_unit 
-      )
-
-
-
-
-  let create t tag a =
-    if (Hashtbl.mem t.tbl tag) then
-      Error "session already exists" |> Lwt.return 
-    else
-      Lwt_mutex.with_lock t.lock ( fun () ->
-          Hashtbl.add t.tbl tag a;
-          Lwt.return (Ok a)
-        )
-        
-
-
-
-  let map t id =
-      Lwt_mutex.with_lock t.lock (fun () ->
-        let r = result_of_opt (Hashtbl.find_opt t.tbl id) in
-        Lwt.return r
-      )
-
-
-
-
-
-  let unmap t id =
-    Lwt_mutex.with_lock t.lock (fun () ->
-        Hashtbl.find_opt t.tbl id |>
-        function
-        | Some a ->
-          Hashtbl.remove t.tbl id;
-          Ok a |> Lwt.return
-
-        | None ->
-          
-          Error "doesn't exist" |> Lwt.return
-      )
-
-
-
-(*
-  let register t tag =
-     
-
-
-
-
-  
-  let map t tag a =
-    
-    Lwt_mutex.with_lock t.lock ( fun () ->
-        let mbox = Hashtbl.find_opt t.tbl tag in
-        match mbox with
-        | Some mbox ->
-          Lwt_mvar.put mbox a >|= fun () -> Ok ()
-
-        | None -> Error "Not_found" |> Lwt.return 
-                                
-      )
-  
-                   
-*)
-
-    
 end
