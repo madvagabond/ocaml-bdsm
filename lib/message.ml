@@ -27,7 +27,7 @@ module Status = struct
             
           
 end
-
+let random_tag () = Random.int32 Int32.max_int
 
 module TREQ = struct
   type t = {tag: int32; path: string list; headers: Headers.t; body: Cstruct.t}
@@ -58,7 +58,10 @@ module TREQ = struct
     let size = 4 + (String.length path_string) + hsize + body_size in 
     size
       
-    
+
+
+  let create ?(path=[]) ?(headers=[]) ?(tag = random_tag ())  ?(body= Cstruct.empty) () =
+    {path; headers; tag; body}
 
 
 
@@ -88,6 +91,7 @@ module TREQ = struct
 
     in buf
 
+  
   let of_frame f =
 
     let tag = Frame.tag f in
@@ -130,6 +134,13 @@ module RREQ = struct
 
   let body t = t.body
 
+  let create
+      ?(tag= random_tag () )
+      ?(status=0)
+      ?(headers = Headers.init ())
+      ?(body = Cstruct.empty) () =
+    {tag; headers; status; body}
+
                  
                     
 
@@ -153,6 +164,8 @@ module RREQ = struct
     in
     buf
 
+
+  
   let of_frame f =
     let tag = Frame.tag f in
     let (headers, b1) = Headers.read f.body in
@@ -168,6 +181,10 @@ module RREQ = struct
  
          
 end 
+
+
+
+
 
 module INIT = struct
   type t = {tag: int32; headers: Headers.t;}
@@ -196,9 +213,16 @@ module INIT = struct
     {t with headers = h;}
 
 
+  let create ?(tag = random_tag () ) ~headers () =
+    {tag; headers}
+
   
                        
 end
+
+
+
+
 
 module RERROR = struct
   type t = {tag: int32; body: Cstruct.t}
