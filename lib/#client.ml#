@@ -1,0 +1,43 @@
+open Util
+open Lwt.Infix
+open Message
+
+open Session
+ 
+module SessionManager 
+  (*
+
+      | Ok (`TPING tag) ->
+        t.send (Some rping);
+        aux ()
+
+      | Ok (`RCLOSE tag) ->
+        Inbox.shutdown t.inbox tag >>= fun _ ->
+        aux ()
+
+      | Ok (`RINIT init) ->
+        process t (`RINIT init) >>= fun _ ->
+        aux () 
+        
+        
+      | Ok (`TINIT init) ->
+        process t (`RINIT init) >>= fun _ ->
+        aux () 
+        
+        
+  
+      | Ok (`RPING tag) ->
+        process t (`RPING tag) >>= fun _ ->
+        aux ()
+
+     
+
+      | Ok (`TCLOSE tag) ->
+        Inbox.unmap t.inbox tag >>= fun _ ->
+        t.send ( Some (`RCLOSE tag) );
+        aux ()
+          
+        
+        
+
+*)

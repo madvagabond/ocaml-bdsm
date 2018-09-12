@@ -24,9 +24,8 @@ module Private = struct
     t
 
 
-  let create ~inbox ~outbox () =
+  let create ?(tag=Message.random_tag ()) ~inbox ~outbox () =
     let status = Negotiating in
-    let tag = Random.int32 (Int32.max_int) in 
     {inbox; outbox; status; tag}
 
 
@@ -57,18 +56,6 @@ let rec send msg t =
 
 
 
-
-let (!) msg t = send msg t
-
-
-let (<:) t = recv t
-  
-
-
-
-
-
-
 let close t =
   Private.close t >>= fun _ ->
   Lwt_queue.put t.outbox (`TCLOSE t.tag) 
@@ -78,9 +65,15 @@ let tag t = t.tag
 
 
 module Infix = struct
+  (** send *)
   let (!) msg t = send msg t
 
 
+
+  (** recv *)
   let (<:) t = recv t
 
 end
+
+include Infix
+
