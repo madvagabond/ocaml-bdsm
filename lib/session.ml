@@ -77,3 +77,12 @@ end
 
 include Infix
 
+
+    
+let status t =
+  t.status
+
+let is_closed t =
+  match t.status with
+  | Closed -> true
+  | _ -> false

@@ -2,6 +2,7 @@ open Frame
 open Util
        
        
+let ping_tag = 0l
 
 module Status = struct
   type t = [
@@ -30,7 +31,15 @@ end
 let random_tag () = Random.int32 Int32.max_int
 
 module TREQ = struct
-  type t = {tag: int32; path: string list; headers: Headers.t; body: Cstruct.t}
+
+  type t = {
+    tag: int32;
+    path: string list;
+    headers: Headers.t;
+    body: Cstruct.t
+  }
+
+  
 
   let tag t = t.tag
                 
@@ -384,5 +393,14 @@ let of_frame f =
     
     
 
+type rping = [`RPING of int32]
+type tping = [`TPING of int32]    
                
-               
+type ping = [`TPING of int32 | `RPING of int32]
+type req = [ `TREQ of TREQ.t | `RREQ of RREQ.t]
+
+type tmsg = [`TREQ of TREQ.t | `TPING of int32]
+type rmsg = [`RREQ of RREQ.t | `RPING of int32]
+
+type treq = [`TREQ of TREQ.t]
+type rreq = [`RREQ of RREQ.t]

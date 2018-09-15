@@ -6,14 +6,17 @@ open Session
 
 
 
+module Make (T: S.Transport): S.SessionManager = struct
 
-module Client (T: Transport.S) = struct
 
-
-  type updates = (Message.t option -> unit)
-
+  type callback = (Session.t -> unit Lwt.t)
   type state = Open | Draining | Closed
 
+  module Transport = T
+
+  module Flow = T.Flow
+
+  
 
   type t = {
     transport: T.conn;
@@ -24,163 +27,11 @@ module Client (T: Transport.S) = struct
     sessions: (int32, Session.t) Tbl.t;
     outbox: Message.t Lwt_queue.t 
   }
-
-
-
-
-
-  let rping = `RPING 0l
-
-
-
-  let process t =
-    T.read t.transport >>= function
-
-    | `RPING tag ->
-      let ib = Tbl.find t.sessions tag in
-      Lwt_queue.put ib.inbox (`RPING tag)
-        
-      
-    | `TPING tag ->
-      Lwt_queue.put t.outbox (`RPING tag)
-        
-
-    | `TCLOSE tag ->
-      let ib = Tbl.find t.sessions tag in 
-      Tbl.remove_all t.sessions tag;
-      t.counter <- (t.counter - 1);
-      
-      close ib >>= fun _ -> 
-
-      Lwt_queue.put t.outbox (`RCLOSE tag)
-
-
-    | `RINIT i ->
-      t.counter <- t.counter + 1 ; 
-      let s = Tbl.find t.sessions (INIT.tag i) in
-      let _ = Session.Private.establish s in
-      Lwt.return_unit
-
-
-
-    | `RCLOSE tag ->
-      let ib = Tbl.find t.sessions tag in
-      Tbl.remove_all t.sessions tag;
-      Session.Private.close ib >>= fun _ -> 
-
-      t.counter <- (t.counter - 1);
-      Lwt.return_unit
-
-
-
-    | `TSHUTDOWN ->
-      t.state <- Draining;
-      Lwt.return_unit
-
-    | `RSHUTDOWN ->
-      t.state <- Closed;
-      Lwt.return_unit
-
-    | `TINIT _ -> Lwt.return_unit 
-
-    | msg ->
-      let tag = Message.tag msg in 
-      let chan = Tbl.find t.sessions tag in
-
-      Lwt_queue.put chan.inbox msg 
-
-
-
-
-  let rec read_loop t =
-    match t.state with
-    | Open ->
-      process t >>= fun _ ->
-      read_loop t
-
-    | Draining when (t.counter >= 0) ->
-      t.state <- Closed;
-      read_loop t
-
-    | Draining ->
-      process t >>= fun _ ->
-      read_loop t
-
-    | Closed ->
-      T.write t.transport `RSHUTDOWN >>= fun _ -> 
-      T.close t.transport
-
-
-
-
-  let dispatch t =
-    Lwt_queue.poll t.outbox  >>= fun msg ->
-    T.write t.transport msg 
-
-
-
-  let rec write_loop t =
-    match t.state with
-    | Open ->
-      dispatch t
-
-    | _ ->
-      Lwt.return_unit
-
-
-
-
-  let create_session t =
-    let open INIT in
-
-    let sesh =
-      Session.Private.create ~inbox:(Lwt_queue.create () ) ~outbox:t.outbox ()
-    in
-
-
-    let tag = Session.tag sesh in
-    let init = {tag;headers = Headers.init ()} in
-    let msg = (`TINIT init) in
-
-
-
-    Tbl.add t.sessions tag sesh; 
-    Lwt_queue.put t.outbox msg
-
-
-
-
-
-
-
-end
-
-
-
-module Server (T: Transport.S) = struct
   
 
 
-  type updates = (Message.t option -> unit)
 
-  type state = Open | Draining | Closed
-
-
-  type t = {
-    transport: T.conn;
-    mutable counter: int;
-    mutable state: state;
-    buffer_size: int; 
-
-    sessions: (int32, Session.t) Tbl.t;
-    outbox: Message.t Lwt_queue.t 
-  }
-
-
-
-  type 'a callback = Session.t -> 'a Lwt.t
-
-  let establish t i cb=
+  let establish t i (cb: callback) =
     let rep = `RINIT i in
 
     let tag =  Message.INIT.tag i in
@@ -196,15 +47,34 @@ module Server (T: Transport.S) = struct
 
 
     Lwt_queue.put t.outbox rep >>= fun _ ->
-    Lwt.async ( cb s );
+    let _ = cb s in 
 
     Lwt.return_unit
 
-    
+
+
+  let close_session t tag =
+    let ib = Tbl.find t.sessions tag in
+    if Session.is_closed ib then 
+
+      let _ = Tbl.remove_all t.sessions tag in 
+      Session.Private.close ib >>= fun _ ->
+
+      t.counter <- (t.counter - 1);
+      Lwt.return_unit
+
+    else
+      Lwt.return_unit 
+
+
+
+  
+  
 
 
   let process t cb =
     T.read t.transport >>= function
+
     | `RPING tag ->
       let ib = Tbl.find t.sessions tag in
       Lwt_queue.put ib.inbox (`RPING tag)
@@ -213,98 +83,104 @@ module Server (T: Transport.S) = struct
     | `TPING tag ->
       Lwt_queue.put t.outbox (`RPING tag)
 
+
+    | `TCLOSE tag ->
+      close_session t tag >>= fun _ -> 
+      Lwt_queue.put t.outbox (`RCLOSE tag)
+
+
+    | `RINIT i ->
+      t.counter <- t.counter + 1 ; 
+      let s = Tbl.find t.sessions (INIT.tag i) in
+      let _ = Session.Private.establish s in
+      Lwt.return_unit
+
+
     | `TINIT i ->
       t.counter <- (t.counter + 1); 
       establish t i cb
 
 
-    | `TCLOSE tag ->
-      let ib = Tbl.find t.sessions tag in 
-      Tbl.remove_all t.sessions tag;
-      t.counter <- (t.counter - 1);
-
-      close ib >>= fun _ -> 
-
-      Lwt_queue.put t.outbox (`RCLOSE tag)
-
-
 
     | `RCLOSE tag ->
-      let ib = Tbl.find t.sessions tag in
-      Tbl.remove_all t.sessions tag;
-      Session.Private.close ib >>= fun _ -> 
-
-      t.counter <- (t.counter - 1);
+      close_session t tag >>= fun _ -> 
       Lwt.return_unit
-
-
 
 
     | `TSHUTDOWN ->
       t.state <- Draining;
       Lwt.return_unit
 
-  
     | `RSHUTDOWN ->
       t.state <- Closed;
       Lwt.return_unit
 
 
-    | `RINIT _ -> Lwt.return_unit
-                    
-  
-    | x ->
-      let tag = Message.tag x in  
-      let s = Tbl.find t.sessions tag in
-      Lwt_queue.put s.inbox x 
-      
-      
+
+    | msg ->
+      let tag = Message.tag msg in 
+      let chan = Tbl.find t.sessions tag in
+
+      Lwt_queue.put chan.inbox msg 
 
 
+
+
+  let read_loop t ?cb () =
+
+    let svc =
+      match cb with
+      | Some cb -> cb
+      | None -> 
+        (fun s ->
+           Session.Private.close s >>= fun _ ->
+           Lwt.return_unit 
+        )
+        
+       
+    in
+
+
+    let rec aux () = 
+      match t.state with
+      | Open ->
+        process t svc >>= fun _ ->
+        aux ()
+
+      | Draining when (t.counter >= 0) ->
+        t.state <- Closed;
+        aux ()
+
+      | Draining ->
+        process t svc >>= fun _ ->
+        aux ()
+
+      | Closed ->
+        T.write t.transport `RSHUTDOWN >>= fun _ -> 
+        T.close t.transport
+
+
+    in
+
+    aux ()
 
   let dispatch t =
     Lwt_queue.poll t.outbox  >>= fun msg ->
     T.write t.transport msg 
 
 
+
   let rec write_loop t =
     match t.state with
-    | Closed ->
-      Lwt.return_unit 
 
-    | _ ->
-      dispatch t >>= fun _ ->
-      write_loop t
+    | Closed -> Lwt.return_unit
 
-
-  
-
-
-  let rec read_loop t cb =
-    match t.state with
-    | Open ->
-      process t cb >>= fun _ ->
-      read_loop t cb
-
-    | Draining when (t.counter >= 0) ->
-      t.state <- Closed;
-      read_loop t cb
-
-    | Draining ->
-      process t cb >>= fun _ ->
-      read_loop t cb
-
-    | Closed ->
-      T.write t.transport `RSHUTDOWN >>= fun _ -> 
-      T.close t.transport
+    | _ -> dispatch t
 
 
 
+  let write t msg =
+    Lwt_queue.put t.outbox msg
 
   
-
-      
- 
-
-
-end  
+end 
