@@ -23,7 +23,7 @@ module Status = struct
     | 0 -> `Ok 
     | 1 -> `Nack
     | 2 -> `Error
-    | _ -> `Unknown
+    | _ -> failwith "no such status"
 
             
           
@@ -128,7 +128,7 @@ module TREQ = struct
 end
 
 module RREQ = struct
-  type t = {tag: int32; status: int; headers: Headers.t; body: Cstruct.t}
+  type t = {tag: int32; status: Status.t; headers: Headers.t; body: Cstruct.t}
 
   let buffer_size t =
     1 + 4 + (Headers.buffer_size t.headers) +  (Cstruct.len t.body)
@@ -145,7 +145,7 @@ module RREQ = struct
 
   let create
       ?(tag= random_tag () )
-      ?(status=0)
+      ?(status=`Ok)
       ?(headers = Headers.init ())
       ?(body = Cstruct.empty) () =
     {tag; headers; status; body}
@@ -164,7 +164,7 @@ module RREQ = struct
     let _ = 
       write len 4 Cstruct.BE.set_uint32 buf
       |> Headers.write t.headers 
-      |> write t.status 1 Cstruct.set_uint8 
+      |> write (Status.to_int t.status) 1 Cstruct.set_uint8 
       |> (fun c ->
         
         Cstruct.blit t.body 0 c 0 body_s;
@@ -178,12 +178,14 @@ module RREQ = struct
   let of_frame f =
     let tag = Frame.tag f in
     let (headers, b1) = Headers.read f.body in
-    let (status, b2) = read 1 Cstruct.get_uint8 b1 in
+    let (stat_i, b2) = read 1 Cstruct.get_uint8 b1 in
 
     let body =
       let len = Cstruct.len b2 in 
       Cstruct.sub b2 0 len
     in
+
+    let status = Status.of_int stat_i in 
     {tag; status; headers; body}
 
 
@@ -222,7 +224,7 @@ module INIT = struct
     {t with headers = h;}
 
 
-  let create ?(tag = random_tag () ) ~headers () =
+  let create ?(tag = random_tag () ) ?(headers=[]) () =
     {tag; headers}
 
   
@@ -253,9 +255,9 @@ end
 
 type t = [
 
-  | `TPING of int32
+  | `TPING
 
-  | `RPING of int32 
+  | `RPING 
 
   | `TINIT of INIT.t
   | `RINIT of INIT.t
@@ -276,8 +278,8 @@ type t = [
 
 let tag =
   function 
-  | `TPING i -> i
-  | `RPING i -> i
+  | `TPING -> 0l
+  | `RPING -> 0l
 
   | `TINIT x -> INIT.tag x
   | `RINIT x -> INIT.tag x
@@ -299,14 +301,14 @@ let tag =
 let to_frame =
   function
 
-  | `TPING tag ->
+  | `TPING ->
      let mtype = `TPING in 
-     {mtype; tag; body=Cstruct.empty}
+     {mtype; tag=0l; body=Cstruct.empty}
 
 
-  | `RPING tag ->
+  | `RPING ->
      let mtype = `RPING in
-     {mtype; tag; body=Cstruct.empty}
+     {mtype; tag=0l; body=Cstruct.empty}
 
   | `TINIT init ->
      let body = INIT.to_body init in
@@ -372,8 +374,8 @@ let of_frame f =
   let tag = Frame.tag f in
   let mtype = Frame.mtype f in 
   match mtype with
-  | `TPING -> `TPING tag
-  | `RPING -> `RPING tag
+  | `TPING -> `TPING
+  | `RPING -> `RPING
 
   | `TINIT -> `TINIT (INIT.of_frame f)
   | `RINIT -> `RINIT (INIT.of_frame f)
@@ -393,10 +395,10 @@ let of_frame f =
     
     
 
-type rping = [`RPING of int32]
-type tping = [`TPING of int32]    
+type rping = [`RPING]
+type tping = [`TPING]    
                
-type ping = [`TPING of int32 | `RPING of int32]
+type ping = [`TPING | `RPING]
 type req = [ `TREQ of TREQ.t | `RREQ of RREQ.t]
 
 type tmsg = [`TREQ of TREQ.t | `TPING of int32]
@@ -404,3 +406,17 @@ type rmsg = [`RREQ of RREQ.t | `RPING of int32]
 
 type treq = [`TREQ of TREQ.t]
 type rreq = [`RREQ of RREQ.t]
+
+type rerror = [`RERROR of RERROR.t]
+
+type init = [`TINIT of INIT.t | `RINIT of INIT.t]
+
+type shutdown = [`TSHUTDOWN | `RSHUTDOWN]
+                
+
+
+type close =
+  [
+    `TCLOSE of int32 |
+    `RCLOSE of int32
+  ]

@@ -1,13 +1,18 @@
 open Lwt.Infix 
+open Message
+
 
 exception Session_Closed
 type status = Negotiating | Closed | Open
 
 type t = {
   mutable status: status;
-  tag: int32; 
-  inbox: Message.t Lwt_queue.t;
-  outbox: Message.t Lwt_queue.t 
+  tag: int32;
+  
+  inbox: Message.req Lwt_queue.t;
+  outbox: Message.t Lwt_queue.t;
+  
+ 
 }
 
 
@@ -86,3 +91,60 @@ let is_closed t =
   match t.status with
   | Closed -> true
   | _ -> false
+
+
+let close t =
+  Private.close t >>= fun _ ->
+  send (`TCLOSE t.tag) t
+
+
+
+let shutdown t =
+  close t >>= fun _ ->
+  send `TSHUTDOWN t 
+
+
+
+module ReqRep = struct
+
+
+
+  let nack t =
+    let body = Cstruct.of_string "Wrong message type recieved" in
+    `RREQ (RREQ.create ~tag: t.tag ~status:`Nack ~body () )
+        
+  module Sender = struct
+
+    type res = (Message.RREQ.t, Message.treq) result
+
+
+
+
+    let dispatch t tmsg =
+
+      let req = `TREQ tmsg in
+      send req t >>= fun _ ->
+      recv t  >|= function
+      | `RREQ data -> Ok data
+      | `TREQ data -> Error data
+
+  end
+
+
+
+  module Receiver = struct
+
+    let dispatch t cb = 
+        recv t >>= function
+
+        | `TREQ req ->
+          cb req  >>= fun rep ->
+          send (`RREQ rep) t
+            
+        | `RREQ _ ->
+          send (nack t) t
+    
+      
+  end 
+  
+end 

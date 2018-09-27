@@ -6,7 +6,7 @@ open Session
 
 
 
-module Make (T: S.Transport): S.SessionManager = struct
+module Make (T: S.Transport): S.SessionManager with type conn = T.conn = struct
 
 
   type callback = (Session.t -> unit Lwt.t)
@@ -14,24 +14,24 @@ module Make (T: S.Transport): S.SessionManager = struct
 
   module Transport = T
 
-  module Flow = T.Flow
-
-  
+  type conn = T.conn
 
   type t = {
-    transport: T.conn;
+    transport: conn;
+    
     mutable counter: int;
     mutable state: state;
-    buffer_size: int; 
 
     sessions: (int32, Session.t) Tbl.t;
-    outbox: Message.t Lwt_queue.t 
+    outbox: Message.t Lwt_queue.t;
+    pings: Message.rping Lwt_queue.t 
+             
   }
   
 
 
 
-  let establish t i (cb: callback) =
+  let handle_tinit t i (cb: callback) =
     let rep = `RINIT i in
 
     let tag =  Message.INIT.tag i in
@@ -68,6 +68,12 @@ module Make (T: S.Transport): S.SessionManager = struct
 
 
 
+
+
+  let handle_req t req =
+    let tag = Message.tag req in
+    let s = Tbl.find t.sessions tag in
+    Lwt_queue.put s.inbox req  
   
   
 
@@ -75,13 +81,12 @@ module Make (T: S.Transport): S.SessionManager = struct
   let process t cb =
     T.read t.transport >>= function
 
-    | `RPING tag ->
-      let ib = Tbl.find t.sessions tag in
-      Lwt_queue.put ib.inbox (`RPING tag)
+    | `RPING ->
+      Lwt_queue.put t.pings `RPING
 
 
-    | `TPING tag ->
-      Lwt_queue.put t.outbox (`RPING tag)
+    | `TPING  ->
+      Lwt_queue.put t.outbox `TPING
 
 
     | `TCLOSE tag ->
@@ -98,7 +103,7 @@ module Make (T: S.Transport): S.SessionManager = struct
 
     | `TINIT i ->
       t.counter <- (t.counter + 1); 
-      establish t i cb
+      handle_tinit t i cb
 
 
 
@@ -117,11 +122,16 @@ module Make (T: S.Transport): S.SessionManager = struct
 
 
 
-    | msg ->
-      let tag = Message.tag msg in 
-      let chan = Tbl.find t.sessions tag in
+    | `TREQ req -> handle_req t (`TREQ req)
 
-      Lwt_queue.put chan.inbox msg 
+    | `RREQ req -> handle_req t (`RREQ req)
+
+    | `RERROR d ->
+      let s = Tbl.find t.sessions (RERROR.tag d) in
+      Session.close s
+
+  
+      
 
 
 
@@ -177,10 +187,53 @@ module Make (T: S.Transport): S.SessionManager = struct
 
     | _ -> dispatch t
 
+    
+
 
 
   let write t msg =
     Lwt_queue.put t.outbox msg
 
+
+  let create conn =
+
+    let transport = conn in
+    let counter = 0 in
+    let state = Open in
+    
+    let sessions = Hashtbl.create 100 in
+    let outbox =  Lwt_queue.create () in
+    let pings = Lwt_queue.create () in
+
+    {
+      transport; counter; state;
+      outbox; pings; sessions
+    }
+
+  
+
+  
+  let ping t =
+    write t `TPING >>= fun _ ->
+    Lwt_queue.poll t.pings
+
+  let shutdown t =
+    t.state <- Draining;
+    write t `TSHUTDOWN 
+
+
+
+  
+  let create_session t =
+  
+    let inbox = Lwt_queue.create () in 
+    let session = Session.Private.create ~inbox ~outbox: t.outbox () in
+    let req = INIT.create ~tag: (Session.tag session) () in
+    
+    write t (`TINIT req) >|= fun _ ->
+
+    Tbl.add t.sessions (session.tag) session ; 
+    session
+      
   
 end 

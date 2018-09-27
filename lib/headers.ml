@@ -3,7 +3,7 @@ open Util
        
 type t = (string * string) list
 
-
+let empty = []
 let map_option o f =
   match o with
   | Some x -> Some ( f x )
