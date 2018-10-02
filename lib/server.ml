@@ -51,7 +51,8 @@ module Make (L: S.Listener): S.Endpoint = struct
     | Some sm ->
       SM.create_session sm
 
-    | None -> Lwt.fail_with "no such peer is connected"
+    | None ->
+      Lwt.fail_with "no such peer is connected"
 
 
 

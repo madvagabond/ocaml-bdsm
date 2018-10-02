@@ -2,7 +2,8 @@
 
 (executable
  ((name mux_test)
-  (libraries  (mux alcotest-lwt ))))
+  (libraries  ( str mux alcotest-lwt )))
+)
 
 
 (alias

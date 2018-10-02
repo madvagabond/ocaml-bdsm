@@ -2,5 +2,7 @@
        
 let () =
   Alcotest.run "Testing Mux" [
-    "Headers", Headers.tests;
+    "Headers", Header_suite.tests;
+    "Frame", Frame_suite.tests;
+    "Messages", Messages.suite
   ]

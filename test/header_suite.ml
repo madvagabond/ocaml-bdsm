@@ -1,9 +1,21 @@
 open Mux.Headers
-       
+
+
+
+
+let gen () =
+  let open Generators in 
+  list 10 ( pair (string 100) (string 100) ) () 
+  
+
+
+
 let pp_headers =
   let kv = Fmt.pair Fmt.string Fmt.string in
   Fmt.list kv 
 
+
+let eq l r = l = r
 
 let headers_t =
   Alcotest.of_pp pp_headers 

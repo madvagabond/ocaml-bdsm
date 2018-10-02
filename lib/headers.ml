@@ -3,6 +3,15 @@ open Util
        
 type t = (string * string) list
 
+let pp =
+  let kv = Fmt.pair Fmt.string Fmt.string in
+  Fmt.list kv 
+
+
+let to_string = Fmt.to_to_string pp
+
+
+
 let empty = []
 let map_option o f =
   match o with
@@ -131,3 +140,5 @@ let to_cstruct t =
 let of_cstruct buf =
   let (hdrs, _) = read buf in
   hdrs
+
+

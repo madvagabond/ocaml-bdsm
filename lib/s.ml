@@ -155,11 +155,16 @@ module type Endpoint = sig
  
 
   val create_session: t -> peer -> Session.t Lwt.t
-      
+
+
+  
   val serve: t -> peer -> cb: (Session.t -> unit Lwt.t) -> unit -> unit Lwt.t
   val shutdown: t -> peer -> unit Lwt.t
       
   val ping: t -> peer -> Message.rping Lwt.t
+
+
+  
 end
 
 

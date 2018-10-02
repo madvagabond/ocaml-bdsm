@@ -34,7 +34,7 @@ let tag f = f.tag
 let body f = f.body
 let mtype f = f.mtype
                 
-
+let make mtype tag body = {mtype; tag; body}
 
 let mtype_to_int =
   function
@@ -103,10 +103,9 @@ let to_cstruct t =
       Cstruct.blit t.body 0 c 0 bsize;
       Cstruct.shift c bsize
                     
-       )
-      
-                             
+      )                             
   in
+
   buf
 
 

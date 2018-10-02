@@ -1,8 +1,14 @@
 open Frame
 open Util
-       
+
+
+
        
 let ping_tag = 0l
+
+
+
+
 
 module Status = struct
   type t = [
@@ -26,9 +32,24 @@ module Status = struct
     | _ -> failwith "no such status"
 
             
-          
+
+  let to_string =
+    function
+    | `Ok -> "ok"
+    | `Nack -> "nack"
+    | `Error -> "error"
+      
 end
+
+
+
 let random_tag () = Random.int32 Int32.max_int
+
+
+
+
+
+
 
 module TREQ = struct
 
@@ -64,7 +85,7 @@ module TREQ = struct
     let hsize = Headers.buffer_size t.headers in
     let body_size = Cstruct.len t.body in
 
-    let size = 4 + (String.length path_string) + hsize + body_size in 
+    let size = 2 + (String.length path_string) + hsize + body_size in 
     size
       
 
@@ -76,7 +97,6 @@ module TREQ = struct
 
   let to_body t =
     let size = buffer_size t in
-    let len = Int32.of_int size in
     
     let path = String.concat "/" t.path in
     let slen = String.length path in
@@ -86,9 +106,9 @@ module TREQ = struct
 
 
     
-    let _ = 
-      write len 4 Cstruct.BE.set_uint32 buf
-      |> Headers.write t.headers 
+    let _ =
+      (*      write len 4 Cstruct.BE.set_uint32 buf *)
+      Headers.write t.headers buf
       |> write slen 2 Cstruct.BE.set_uint16 
       |> write_string path
                
@@ -110,6 +130,7 @@ module TREQ = struct
     let (path_l, b2) = read 2 Cstruct.BE.get_uint16 b1 in
     let (path_s, b3) =  read_string path_l b2 in 
 
+  
     let body =
       let len = Cstruct.len b3 in 
       Cstruct.sub b3 0 len
@@ -121,17 +142,36 @@ module TREQ = struct
     {tag; path; headers; body}
 
          
-    
+  let to_string t =
+    let h = Headers.to_string t.headers in
+    let body = Cstruct.to_string t.body in 
+    Fmt.strf "treq \n %s \n %ld \n\n %s \n\n %s"  (String.concat "/" t.path) t.tag h body 
+
+
                  
 
                  
 end
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 module RREQ = struct
   type t = {tag: int32; status: Status.t; headers: Headers.t; body: Cstruct.t}
 
   let buffer_size t =
-    1 + 4 + (Headers.buffer_size t.headers) +  (Cstruct.len t.body)
+    1 + (Headers.buffer_size t.headers) +  (Cstruct.len t.body)
 
 
 
@@ -155,15 +195,14 @@ module RREQ = struct
 
   let to_body t =
     let size =  buffer_size t in
-    let len = Int32.of_int size in
     
     let buf = Cstruct.create size in
     let body_s = Cstruct.len t.body in
 
 
     let _ = 
-      write len 4 Cstruct.BE.set_uint32 buf
-      |> Headers.write t.headers 
+      (*write len 4 Cstruct.BE.set_uint32 buf |> *)
+      Headers.write t.headers buf 
       |> write (Status.to_int t.status) 1 Cstruct.set_uint8 
       |> (fun c ->
         
@@ -180,6 +219,7 @@ module RREQ = struct
     let (headers, b1) = Headers.read f.body in
     let (stat_i, b2) = read 1 Cstruct.get_uint8 b1 in
 
+    Printf.printf "%d\n" stat_i;
     let body =
       let len = Cstruct.len b2 in 
       Cstruct.sub b2 0 len
@@ -189,9 +229,28 @@ module RREQ = struct
     {tag; status; headers; body}
 
 
+
+
+  let to_string t =
+    let s = Status.to_string t.status in
+    let body = Cstruct.to_string t.body in
+    let hdrs = Headers.to_string t.headers in
+
+    Fmt.strf "rreq\n\n%ld\n\n%s\n\n%s\n\n%s\n" t.tag s hdrs body
+
+  
+
  
          
 end 
+
+
+
+
+
+
+
+
 
 
 
@@ -227,9 +286,19 @@ module INIT = struct
   let create ?(tag = random_tag () ) ?(headers=[]) () =
     {tag; headers}
 
-  
+
+
+  let to_string t =
+    Fmt.strf "%ld \n %s" (t.tag) (Headers.to_string t.headers) 
                        
 end
+
+
+
+
+
+
+
 
 
 
@@ -250,8 +319,29 @@ module RERROR = struct
     let body = Frame.body f in
 
     {tag; body}
+
+
+  let create ~tag ~body () =
+    {tag;body}
 end
-                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 type t = [
 
@@ -276,6 +366,12 @@ type t = [
 
   ]
 
+
+
+
+
+
+
 let tag =
   function 
   | `TPING -> 0l
@@ -295,6 +391,16 @@ let tag =
 
   | `RERROR t -> RERROR.tag t
     
+
+
+
+
+
+
+
+
+
+
 
 
      
@@ -420,3 +526,79 @@ type close =
     `TCLOSE of int32 |
     `RCLOSE of int32
   ]
+
+
+
+let to_string = function
+  | `TPING -> "tping"
+  | `RPING -> "rping"
+  | `TCLOSE i -> Fmt.strf "tclose %ld" i
+  | `RCLOSE i -> Fmt.strf "tclose %ld" i
+
+  | `TINIT init -> Fmt.strf "tinit \n %s \n" (INIT.to_string init)
+
+  | `RINIT init -> Fmt.strf "rinit \n %s" (INIT.to_string init)
+  | `TREQ t -> TREQ.to_string t
+
+  | `RREQ t -> RREQ.to_string t
+
+
+  | `RERROR t -> Fmt.strf "rerror %ld \n %s" (RERROR.tag t) (RERROR.body t |> Cstruct.to_string)
+  | `RSHUTDOWN -> "rshutdown"
+  | `TSHUTDOWN -> "tshutdown"
+
+
+
+
+
+
+
+
+
+
+
+
+let eq l r =
+  match (l, r) with
+  | (`TPING, `TPING) -> true
+  | (`RPING, `RPING) -> true
+  | (`TINIT il, `TINIT ir) -> il = ir
+  | (`RINIT il, `RINIT ir) -> il = ir
+
+  | (`TREQ tl, `TREQ tr) ->
+    let open TREQ in
+    let be = Cstruct.equal tl.body tr.body in
+    let he = tl.headers = tr.headers in
+    let path = tl.path = tr.path in
+    be && he && path 
+
+  | (`RREQ tl, `RREQ tr) ->
+    let open RREQ in
+   
+    let be = Cstruct.equal tl.body tr.body in
+    let he = tl.headers = tr.headers in
+
+    let se = (Status.to_int tl.status) = (Status.to_int tl.status) in
+
+    
+    be && he && se
+
+  | (`TCLOSE il, `TCLOSE ir) -> il = ir
+
+  | (`RCLOSE il, `RCLOSE ir) -> il = ir
+
+  | (`TSHUTDOWN, `TSHUTDOWN) -> true
+
+  | (`RSHUTDOWN, `RSHUTDOWN) -> true
+
+  | (`RERROR tl, `RERROR tr) ->
+    let open RERROR in
+    let te = tl.tag = tr.tag in
+    let be = Cstruct.equal tl.body tr.body in
+    te && be
+
+  | _ -> false
+
+
+
+
