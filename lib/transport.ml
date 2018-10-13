@@ -5,8 +5,10 @@ open Util
 
 
 
-module Make (IO: S.IO): S.Transport  = struct
+module Make (IO: S.IO) = struct
   module IO = IO
+
+  type peer = IO.peer
   type conn = IO.conn
                 
 
@@ -41,5 +43,8 @@ module Make (IO: S.IO): S.Transport  = struct
   let close c =
     IO.close c >>= fun _ ->
     Lwt.return_unit
+
+
+  let dst c = IO.dst c
       
 end 

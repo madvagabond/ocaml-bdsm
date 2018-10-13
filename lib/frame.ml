@@ -1,15 +1,15 @@
 open Util
 
 
-type msg_type = [
+type msg_type =[
   | `TPING
   | `RPING
 
   | `TINIT
   | `RINIT
 
-  | `TREQ
-  | `RREQ
+  | `TMSG
+  | `RMSG
 
   | `TCLOSE
   | `RCLOSE
@@ -19,8 +19,7 @@ type msg_type = [
 
   | `RERROR
 
-  ]
-
+]
 
 
        
@@ -45,8 +44,8 @@ let mtype_to_int =
   | `TINIT -> 2
   | `RINIT -> 3
 
-  | `TREQ -> 4
-  | `RREQ -> 5
+  | `TMSG -> 4
+  | `RMSG -> 5
 
   | `TCLOSE -> 6
   | `RCLOSE -> 7
@@ -65,8 +64,8 @@ let mtype_of_int =
   | 2 -> `TINIT
   | 3 -> `RINIT
 
-  | 4 -> `TREQ
-  | 5 -> `RREQ
+  | 4 -> `TMSG
+  | 5 -> `RMSG
 
   | 6 -> `TCLOSE
   | 7 -> `RCLOSE

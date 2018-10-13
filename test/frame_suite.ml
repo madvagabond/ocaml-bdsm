@@ -59,7 +59,7 @@ let gen_frame () =
 let test_codec x =
 
   let rec loop i = 
-    let f = Frame.make `TREQ 0l Cstruct.empty in
+    let f = Frame.make `TMSG 0l Cstruct.empty in
 
     let buf = Frame.to_cstruct f in
     let got = Frame.of_cstruct buf |> Util.get_result in

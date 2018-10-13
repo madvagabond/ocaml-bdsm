@@ -1,4 +1,4 @@
-
+open Message
 
 
 module type Peer = sig
@@ -11,7 +11,6 @@ end
 
 
 
-
 module type IO = sig
   type conn
   type peer
@@ -20,35 +19,36 @@ module type IO = sig
   val write_buffer: conn -> Cstruct.t -> unit Lwt.t
 
   val close: conn -> unit Lwt.t
-  val dst: peer
+
+  (** Remote address *)
+  val dst: conn -> peer
+
+  
 end
 
 
 
-
-
+(** A typed bidirectional stream *)
 module type Transport = sig
   type conn
-
-  module IO: IO with type conn := conn
+  type peer
+    
 
   
   val read: conn -> Message.t Lwt.t
   val write: conn -> Message.t -> unit Lwt.t
   val close: conn -> unit Lwt.t
 
+  (** Remote address *)
+  val dst: conn -> peer
+
+ 
   
 end
 
 
-
-
-
-
 module type Connector = sig
   include Transport
-  type peer
-    
 
   val connect: peer -> conn Lwt.t
 end
@@ -59,67 +59,30 @@ end
 
 
 module type Listener = sig
-  type peer
-  include Transport with type IO.peer = peer
-  
-  val listen: IO.peer -> (conn -> unit Lwt.t) -> unit Lwt.t
+  include Transport
+  val listen: peer -> (conn -> unit Lwt.t) -> unit Lwt.t
 end 
 
 
 
 
-
-
-
-
-
-(** Base protocol implementation. *)
-module type Protocol = sig
-  type t
-
-
-
-  val handle_init: t -> Message.init -> unit Lwt.t
-  val handle_req: t -> Message.req -> (Session.t -> unit Lwt.t) -> unit Lwt.t
-
-  
-  val handle_close: t -> Message.close -> unit Lwt.t
-  val handle_shutdown: t -> Message.shutdown -> unit Lwt.t
-  val handle_err: t -> Message.rerror -> unit Lwt.t
-
-
-  val drained: t -> bool 
-
-  val closed: t -> Session.t -> bool
-  val close: t -> Session.t -> unit Lwt.t 
-  
-  val read: t -> Message.t Lwt.t 
-  val write: t -> Message.t -> unit Lwt.t
-
-  
-end
-
-
-
-
-
-
-
+(** Manages sessions on top of physical connections. *)
 module type SessionManager = sig
 
   type t
   type conn
+  type peer
+    
 
-  module Transport: Transport with type conn = conn
+  module Transport: Transport with type conn := conn and type peer := peer
                                      
 
+
+  val read_loop: t -> ?cb:(Session.t -> unit Lwt.t) -> unit -> unit Lwt.t
+
+  val write_loop: t -> unit Lwt.t
   
   val process: t -> (Session.t -> unit Lwt.t) -> unit Lwt.t
-
-
-  val read_loop: t -> ?cb: (Session.t -> unit Lwt.t) -> unit -> unit Lwt.t
-  val write_loop: t -> unit Lwt.t
-
   val write: t -> Message.t -> unit Lwt.t
   val create: conn -> t
 
@@ -127,43 +90,58 @@ module type SessionManager = sig
   val ping: t -> Message.rping Lwt.t
 
   val create_session: t -> Session.t Lwt.t
+  val dst: t -> peer
+
+
+  val transport: t -> conn
       
       
 end
 
 
+module type Client = sig
+  type t
+
+  type peer
+  type conn
+
+  module SM: SessionManager with type conn := conn and type peer := peer
+    
+
+  (** Establishes connection to server *)
+  val create: peer -> t Lwt.t
+
+  val shutdown: t -> unit Lwt.t
+  val dispatch: t -> TMSG.t -> RMSG.t Lwt.t
+
+  (** Creates a session *)
+  val create_session: t -> Session.t Lwt.t
+  val ping: t -> Message.rping Lwt.t
+
+  (** Remote address *)
+  val dst: t -> peer
+
+
+end
 
 
 
-
-
-
-
-
-
-(** 
-  Both clients and servers are this, their differences are in how they satisfy the signature. 
-*)
-module type Endpoint = sig
+module type Server = sig
 
   type t
   type peer
 
   type conn 
   
-  module SM: SessionManager
- 
+  module SM: SessionManager with type conn := conn and type peer := peer
 
-  val create_session: t -> peer -> Session.t Lwt.t
-
-
-  
-  val serve: t -> peer -> cb: (Session.t -> unit Lwt.t) -> unit -> unit Lwt.t
-  val shutdown: t -> peer -> unit Lwt.t
-      
+  val serve: peer -> (Session.t -> unit Lwt.t) -> t Lwt.t
   val ping: t -> peer -> Message.rping Lwt.t
 
-
+  val shutdown: t -> peer -> unit Lwt.t
+  val serve_dispatch: peer -> (TMSG.t -> RMSG.t Lwt.t) -> t Lwt.t
+  val create_session: t -> peer -> Session.t Lwt.t
+                                    
   
 end
 

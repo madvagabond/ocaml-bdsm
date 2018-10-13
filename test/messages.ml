@@ -15,8 +15,8 @@ module Gen = struct
     let headers = Header_suite.gen () in
 
     let body = Generators.cstruct 300 () in
-    let req = Message.TREQ.create ~tag ~path ~body ~headers () in
-    `TREQ req 
+    let req = Message.TMSG.create ~tag ~path ~body ~headers () in
+    `TMSG req 
 
 
 
@@ -26,8 +26,8 @@ module Gen = struct
     let headers = Header_suite.gen () in
 
     let body = Generators.cstruct 300 () in 
-    let r = RREQ.create ~tag ~status ~headers ~body () in
-    `RREQ r 
+    let r = RMSG.create ~tag ~status ~headers ~body () in
+    `RMSG r 
 
 
   let tping () =

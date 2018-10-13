@@ -2,14 +2,9 @@ open Frame
 open Util
 
 
-
        
 let ping_tag = 0l
-
-
-
-
-
+  
 module Status = struct
   type t = [
 
@@ -51,7 +46,7 @@ let random_tag () = Random.int32 Int32.max_int
 
 
 
-module TREQ = struct
+module TMSG = struct
 
   type t = {
     tag: int32;
@@ -167,7 +162,7 @@ end
 
 
 
-module RREQ = struct
+module RMSG = struct
   type t = {tag: int32; status: Status.t; headers: Headers.t; body: Cstruct.t}
 
   let buffer_size t =
@@ -190,7 +185,9 @@ module RREQ = struct
       ?(body = Cstruct.empty) () =
     {tag; headers; status; body}
 
-                 
+
+
+
                     
 
   let to_body t =
@@ -301,9 +298,6 @@ end
 
 
 
-
-
-
 module RERROR = struct
   type t = {tag: int32; body: Cstruct.t}
 
@@ -311,8 +305,7 @@ module RERROR = struct
   let body t = t.body
 
   let to_frame t =
-    let mtype = `RERROR in 
-    {mtype; tag= t.tag; body = t.body}
+    {mtype=`RERROR; tag= t.tag; body = t.body}
 
   let of_frame f =
     let tag = Frame.tag f in
@@ -335,36 +328,26 @@ end
 
 
 
-
-
-
-
-
-
-
-
 type t = [
-
   | `TPING
-
-  | `RPING 
-
+  | `RPING
+    
   | `TINIT of INIT.t
   | `RINIT of INIT.t
-
-  | `TREQ of TREQ.t
-  | `RREQ of RREQ.t
-
+               
+  | `TMSG of TMSG.t
+  | `RMSG of RMSG.t
+              
   | `TCLOSE of int32
   | `RCLOSE of int32
-
-  | `TSHUTDOWN
-  | `RSHUTDOWN
-
+      
   | `RERROR of RERROR.t
-                 
+  | `RSHUTDOWN
+  | `TSHUTDOWN
 
-  ]
+
+]
+
 
 
 
@@ -380,8 +363,8 @@ let tag =
   | `TINIT x -> INIT.tag x
   | `RINIT x -> INIT.tag x
 
-  | `TREQ x -> TREQ.tag x                      
-  | `RREQ x -> RREQ.tag x
+  | `TMSG x -> TMSG.tag x                      
+  | `RMSG x -> RMSG.tag x
 
   | `TCLOSE x -> x
   | `RCLOSE x -> x
@@ -389,16 +372,37 @@ let tag =
   | `TSHUTDOWN -> 0l
   | `RSHUTDOWN -> 0l
 
-  | `RERROR t -> RERROR.tag t
+  | `RERROR t -> 0l
+
+
+
+
+
+
+let of_frame f =
+  let tag = Frame.tag f in
+  let mtype = Frame.mtype f in
+  
+  match mtype with
+  | `TPING -> `TPING
+  | `RPING -> `RPING
+
+  | `TINIT -> `TINIT (INIT.of_frame f)
+  | `RINIT -> `RINIT (INIT.of_frame f)
+
+  | `TMSG -> `TMSG (TMSG.of_frame f)
+  | `RMSG -> `RMSG (RMSG.of_frame f)
+
+  | `TCLOSE -> `TCLOSE tag
+  | `RCLOSE  -> `RCLOSE tag
+                 
+  | `RERROR -> `RERROR (RERROR.of_frame f)
+      
+  | `TSHUTDOWN -> `TSHUTDOWN
+
+  | `RSHUTDOWN -> `RSHUTDOWN
+
     
-
-
-
-
-
-
-
-
 
 
 
@@ -429,16 +433,16 @@ let to_frame =
      {mtype; tag; body;}
        
 
-  | `TREQ t ->
-     let body = TREQ.to_body t in
-     let mtype = `TREQ in
-     let tag = TREQ.tag t in
+  | `TMSG t ->
+     let body = TMSG.to_body t in
+     let mtype = `TMSG in
+     let tag = TMSG.tag t in
      {body; tag; mtype}
 
-  | `RREQ t ->
-     let body = RREQ.to_body t in
-     let mtype = `RREQ in
-     let tag = RREQ.tag t in
+  | `RMSG t ->
+     let body = RMSG.to_body t in
+     let mtype = `RMSG in
+     let tag = RMSG.tag t in
      {body; tag; mtype}
 
 
@@ -467,65 +471,9 @@ let to_frame =
 
   | `RERROR t ->
     RERROR.to_frame t 
-    
-  
- 
-
-       
 
 
 
-
-let of_frame f =
-  let tag = Frame.tag f in
-  let mtype = Frame.mtype f in 
-  match mtype with
-  | `TPING -> `TPING
-  | `RPING -> `RPING
-
-  | `TINIT -> `TINIT (INIT.of_frame f)
-  | `RINIT -> `RINIT (INIT.of_frame f)
-
-  | `TREQ -> `TREQ (TREQ.of_frame f)
-  | `RREQ -> `RREQ (RREQ.of_frame f)
-
-  | `TCLOSE -> `TCLOSE tag
-  | `RCLOSE -> `RCLOSE tag
-                 
-  | `RERROR ->
-    `RERROR (RERROR.of_frame f)
-      
-  | `TSHUTDOWN -> `TSHUTDOWN
-
-  | `RSHUTDOWN -> `RSHUTDOWN
-    
-    
-
-type rping = [`RPING]
-type tping = [`TPING]    
-               
-type ping = [`TPING | `RPING]
-type req = [ `TREQ of TREQ.t | `RREQ of RREQ.t]
-
-type tmsg = [`TREQ of TREQ.t | `TPING of int32]
-type rmsg = [`RREQ of RREQ.t | `RPING of int32]
-
-type treq = [`TREQ of TREQ.t]
-type rreq = [`RREQ of RREQ.t]
-
-type rerror = [`RERROR of RERROR.t]
-
-type init = [`TINIT of INIT.t | `RINIT of INIT.t]
-
-type shutdown = [`TSHUTDOWN | `RSHUTDOWN]
-                
-
-
-type close =
-  [
-    `TCLOSE of int32 |
-    `RCLOSE of int32
-  ]
 
 
 
@@ -538,15 +486,14 @@ let to_string = function
   | `TINIT init -> Fmt.strf "tinit \n %s \n" (INIT.to_string init)
 
   | `RINIT init -> Fmt.strf "rinit \n %s" (INIT.to_string init)
-  | `TREQ t -> TREQ.to_string t
+  | `TMSG t -> TMSG.to_string t
 
-  | `RREQ t -> RREQ.to_string t
+  | `RMSG t -> RMSG.to_string t
 
 
   | `RERROR t -> Fmt.strf "rerror %ld \n %s" (RERROR.tag t) (RERROR.body t |> Cstruct.to_string)
   | `RSHUTDOWN -> "rshutdown"
   | `TSHUTDOWN -> "tshutdown"
-
 
 
 
@@ -565,15 +512,15 @@ let eq l r =
   | (`TINIT il, `TINIT ir) -> il = ir
   | (`RINIT il, `RINIT ir) -> il = ir
 
-  | (`TREQ tl, `TREQ tr) ->
-    let open TREQ in
+  | (`TMSG tl, `TMSG tr) ->
+    let open TMSG in
     let be = Cstruct.equal tl.body tr.body in
     let he = tl.headers = tr.headers in
     let path = tl.path = tr.path in
     be && he && path 
 
-  | (`RREQ tl, `RREQ tr) ->
-    let open RREQ in
+  | (`RMSG tl, `RMSG tr) ->
+    let open RMSG in
    
     let be = Cstruct.equal tl.body tr.body in
     let he = tl.headers = tr.headers in
@@ -602,3 +549,6 @@ let eq l r =
 
 
 
+type tping = [`TPING]
+type rping = [`RPING]
+type msg = [`TMSG of TMSG.t | `RMSG of RMSG.t ]
